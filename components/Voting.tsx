@@ -95,15 +95,15 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
 
     if (!userEmail) {
         return (
-            <div className="text-center">
-                <h2 className="text-2xl font-bold mb-4">Welcome, Voter!</h2>
-                <p className="text-gray-400 mb-6">Please sign in with your Google account to participate.</p>
+            <div className="text-center py-10">
+                <h2 className="text-3xl font-bold mb-4">Welcome, Voter!</h2>
+                <p className="text-gray-400 mb-8 max-w-md mx-auto">To ensure a fair voting process, please sign in with your Google account to participate.</p>
                 <button
                     onClick={handleLogin}
-                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-gray-900 bg-white hover:bg-gray-200"
+                    className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition-transform transform hover:scale-105"
                 >
                     <GoogleIcon />
-                    Sign in with Google
+                    <span className="ml-3">Sign in with Google</span>
                 </button>
             </div>
         );
@@ -111,64 +111,68 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
     
     if (hasVoted) {
         return (
-            <div className="text-center p-8 bg-gray-800 rounded-lg">
-                <h2 className="text-2xl font-bold text-green-400 mb-4">Thank You for Voting!</h2>
-                <p className="text-gray-300">Your vote has been recorded. Results will be shown after the voting period ends.</p>
-                <div className="mt-6 text-lg">Time Remaining: <span className="font-mono bg-gray-700 px-2 py-1 rounded">{formatTime(timeRemaining)}</span></div>
+            <div className="text-center p-12 bg-gray-700 rounded-xl">
+                <h2 className="text-3xl font-bold text-green-400 mb-4">Thank You for Voting!</h2>
+                <p className="text-gray-300 text-lg">Your vote has been successfully recorded. Results will be revealed after the voting period ends.</p>
+                <div className="mt-8 text-xl">
+                    Time Remaining:
+                    <span className="font-mono bg-gray-800 px-4 py-2 rounded-lg ml-3 tracking-widest">{formatTime(timeRemaining)}</span>
+                </div>
             </div>
         );
     }
 
     return (
         <div>
-            <div className="text-center mb-8 p-4 bg-gray-800 rounded-lg shadow-md">
-                <p className="text-gray-300">Welcome, <span className="font-semibold text-purple-400">{userEmail}</span>!</p>
-                <div className="mt-4 text-xl">
-                    Time Remaining: <span className="font-mono bg-gray-700 px-3 py-1 rounded-md tracking-wider">{formatTime(timeRemaining)}</span>
+            <div className="text-center mb-10 p-6 bg-gray-700 rounded-xl shadow-lg">
+                <p className="text-lg text-gray-300">Welcome, <span className="font-bold text-indigo-400">{userEmail}</span>!</p>
+                <div className="mt-4 text-2xl">
+                    Time Remaining:
+                    <span className="font-mono bg-gray-800 px-4 py-2 rounded-lg ml-3 tracking-widest">{formatTime(timeRemaining)}</span>
                 </div>
             </div>
         
-            <div className="flex flex-col md:flex-row gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Left side: Voting controls and site list */}
-                <div className="w-full md:w-1/3 space-y-6">
-                    <div className="bg-gray-800 p-6 rounded-lg">
-                        <h3 className="text-xl font-semibold mb-4">Your Vote</h3>
+                <div className="md:col-span-1 space-y-8">
+                    <div className="bg-gray-700 p-6 rounded-xl shadow-lg">
+                        <h3 className="text-2xl font-semibold mb-5 border-b border-gray-600 pb-3">Your Vote</h3>
                         <div>
-                            <label htmlFor="group-number" className="block text-sm font-medium text-gray-300">What is your group number?</label>
+                            <label htmlFor="group-number" className="block text-sm font-medium text-gray-300 mb-2">What is your group number?</label>
                             <input
                                 type="number"
                                 id="group-number"
                                 value={userGroup}
                                 onChange={e => setUserGroup(e.target.value)}
-                                className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                className="mt-1 block w-full bg-gray-800 border border-gray-600 rounded-lg shadow-sm py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="e.g., 5"
                                 required
                             />
                         </div>
-                        <div className="mt-4">
+                        <div className="mt-6">
                             <p className="text-sm text-gray-400">Selected site:</p>
-                            <p className="text-lg font-bold text-purple-300">{selectedSite?.name || 'None'}</p>
+                            <p className="text-xl font-bold text-indigo-300 truncate">{selectedSite?.name || 'None'}</p>
                         </div>
                         
-                         {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                         {error && <p className="text-red-400 text-sm mt-4 p-3 bg-red-900/50 rounded-lg">{error}</p>}
 
                         <button
                             onClick={handleVote}
                             disabled={!userGroup || !selectedSite || (timeRemaining !== null && timeRemaining <= 0)}
-                            className="mt-6 w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 focus:ring-offset-gray-800"
+                            className="mt-8 w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 focus:ring-offset-gray-800 transition-all transform hover:scale-105"
                         >
                             {timeRemaining !== null && timeRemaining <= 0 ? 'Voting Closed' : 'Cast Your Vote'}
                         </button>
                     </div>
 
-                    <div className="bg-gray-800 p-6 rounded-lg">
-                        <h3 className="text-xl font-semibold mb-4">Projects</h3>
-                        <ul className="space-y-2">
+                    <div className="bg-gray-700 p-6 rounded-xl shadow-lg">
+                        <h3 className="text-2xl font-semibold mb-5 border-b border-gray-600 pb-3">Projects</h3>
+                        <ul className="space-y-3 max-h-96 overflow-y-auto">
                            {config.sites.map(site => (
                                <li key={site.id}>
                                    <button 
                                        onClick={() => setSelectedSite(site)}
-                                       className={`w-full text-left p-3 rounded-md transition-colors ${selectedSite?.id === site.id ? 'bg-purple-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
+                                       className={`w-full text-left p-4 rounded-lg transition-all duration-200 ${selectedSite?.id === site.id ? 'bg-indigo-600 text-white shadow-lg transform -translate-x-2' : 'bg-gray-800 hover:bg-gray-600'}`}
                                    >
                                        {site.name}
                                    </button>
@@ -179,36 +183,39 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
                 </div>
 
                 {/* Right side: Site viewer */}
-                <div className="w-full md:w-2/3">
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold">{selectedSite?.name || 'Select a site to view'}</h3>
+                <div className="md:col-span-2">
+                    <div className="bg-gray-700 p-6 rounded-xl shadow-lg h-full">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-2xl font-semibold truncate">{selectedSite?.name || 'Select a site to view'}</h3>
                             <div className="flex items-center space-x-2">
                                 <span className="text-sm text-gray-400">View as:</span>
-                                <button onClick={() => setViewMode('iframe')} className={`px-3 py-1 text-sm rounded-md ${viewMode === 'iframe' ? 'bg-purple-600' : 'bg-gray-600'}`}>Iframe</button>
-                                <button onClick={() => setViewMode('link')} className={`px-3 py-1 text-sm rounded-md ${viewMode === 'link' ? 'bg-purple-600' : 'bg-gray-600'}`}>Link</button>
+                                <button onClick={() => setViewMode('iframe')} className={`px-4 py-2 text-sm rounded-lg font-semibold ${viewMode === 'iframe' ? 'bg-indigo-600 text-white' : 'bg-gray-600'}`}>Iframe</button>
+                                <button onClick={() => setViewMode('link')} className={`px-4 py-2 text-sm rounded-lg font-semibold ${viewMode === 'link' ? 'bg-indigo-600 text-white' : 'bg-gray-600'}`}>Link</button>
                             </div>
                         </div>
 
-                        <div className="aspect-video bg-gray-900 rounded-md flex items-center justify-center">
+                        <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
                             {!selectedSite ? (
-                                <p className="text-gray-500">No site selected</p>
+                                <div className="text-center text-gray-500">
+                                    <p className="text-2xl">🖥️</p>
+                                    <p className="mt-2">No site selected</p>
+                                </div>
                             ) : viewMode === 'iframe' ? (
                                 <iframe
                                     src={selectedSite.url}
                                     title={selectedSite.name}
-                                    className="w-full h-full border-0 rounded-md"
+                                    className="w-full h-full border-0 rounded-lg"
                                     sandbox="allow-scripts allow-same-origin"
                                 ></iframe>
                             ) : (
-                                 <div className="text-center">
+                                 <div className="text-center p-8">
                                     <a 
                                         href={selectedSite.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-purple-400 hover:text-purple-300 text-lg underline"
+                                        className="text-indigo-400 hover:text-indigo-300 text-xl underline transition-colors"
                                     >
-                                        Open {selectedSite.name} in a new tab
+                                        Open {selectedSite.name} in a new tab ↗
                                     </a>
                                  </div>
                             )}
