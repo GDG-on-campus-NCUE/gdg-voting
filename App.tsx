@@ -13,12 +13,29 @@ const App: React.FC = () => {
     const [groupVotes, setGroupVotes] = useState<GroupVotes>({});
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
+    const setPlaceholderData = () => {
+        const placeholderConfig: VotingConfig = {
+            countdown: 300,
+            sites: [
+                { id: 'ph-google', name: 'Google', url: 'https://www.google.com' },
+                { id: 'ph-gdg', name: 'GDG NCUESA', url: 'https://gdg.ncuesa.org.tw' }
+            ]
+        };
+        setConfig(placeholderConfig);
+        setVoters([]);
+        const initialVotes: VoteCounts = {};
+        placeholderConfig.sites.forEach(site => { initialVotes[site.id] = 0; });
+        setVotes(initialVotes);
+        setGroupVotes({});
+        setPhase('voting');
+    };
+
     useEffect(() => {
         const initializeApp = async () => {
             try {
                 // await initClient();
                 const configData = await getSheetData('Config!A:C');
-                if (configData && configData.length > 0) {
+                if (configData && configData.length > 1) { // Need countdown and at least one site
                     const countdown = parseInt(configData[0][0], 10);
                     const sites = configData.slice(1).map(row => ({ id: row[0], name: row[1], url: row[2] }));
                     const newConfig = { countdown, sites };
@@ -41,19 +58,14 @@ const App: React.FC = () => {
                     });
                     setGroupVotes(initialGroupVotes);
 
-                    const now = new Date().getTime();
-                    const endTimeMs = new Date(endTime).getTime();
-                    if (now >= endTimeMs) {
-                        setPhase('results');
-                    } else {
-                        setPhase('voting');
-                    }
+                    setPhase('voting');
+
                 } else {
-                    setPhase('error');
+                    setPlaceholderData();
                 }
             } catch (error) {
                 console.error("Error initializing app:", error);
-                setPhase('error');
+                setPlaceholderData();
             }
         };
 
@@ -102,19 +114,23 @@ const App: React.FC = () => {
     };
     
     return (
-        <div className="container mx-auto p-4 md:p-8">
-            <header className="text-center mb-8">
-                <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-                    Live Website Voting
-                </h1>
-                <p className="text-gray-400 mt-2">Vote for your favorite project!</p>
-            </header>
-            <main>
-                {renderPhase()}
-            </main>
-            <footer className="text-center mt-8">
-                <button onClick={handleReset} className="text-gray-500 hover:text-red-500 transition-colors text-sm">Reset Application</button>
-            </footer>
+        <div className="bg-gray-900 text-white min-h-screen">
+            <div className="container mx-auto p-4 md:p-8">
+                <header className="text-center mb-12">
+                    <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                        Live Website Voting
+                    </h1>
+                    <p className="text-gray-400 mt-3 text-lg">Vote for your favorite project!</p>
+                </header>
+                <main className="bg-gray-800 rounded-xl shadow-2xl p-6 md:p-10">
+                    {renderPhase()}
+                </main>
+                <footer className="text-center mt-12">
+                    <button onClick={handleReset} className="text-gray-600 hover:text-red-400 transition-colors duration-300 text-sm font-medium">
+                        Reset Application
+                    </button>
+                </footer>
+            </div>
         </div>
     );
 };
