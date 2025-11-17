@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/gapi": "^0.0.47",
+    "gapi-script": "^1.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

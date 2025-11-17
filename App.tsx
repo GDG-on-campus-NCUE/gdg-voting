@@ -1,63 +1,95 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocalStorage } from './hooks/useLocalStorage';
 import { AppPhase, VotingConfig, VoteCounts, Voter, GroupVotes } from './types';
-import Setup from './components/Setup';
 import Voting from './components/Voting';
 import Results from './components/Results';
+import { initClient, getSheetData } from './googleSheetsService';
 
 const App: React.FC = () => {
-    const [phase, setPhase] = useLocalStorage<AppPhase>('voting-app-phase', 'setup');
-    const [config, setConfig] = useLocalStorage<VotingConfig | null>('voting-app-config', null);
-    const [votes, setVotes] = useLocalStorage<VoteCounts>('voting-app-votes', {});
-    const [voters, setVoters] = useLocalStorage<Voter[]>('voting-app-voters', []);
-    const [groupVotes, setGroupVotes] = useLocalStorage<GroupVotes>('voting-app-group-votes', {});
+    const [phase, setPhase] = useState<AppPhase>('loading');
+    const [config, setConfig] = useState<VotingConfig | null>(null);
+    const [votes, setVotes] = useState<VoteCounts>({});
+    const [voters, setVoters] = useState<Voter[]>([]);
+    const [groupVotes, setGroupVotes] = useState<GroupVotes>({});
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
     useEffect(() => {
-        if (phase === 'voting' && config?.endTime) {
-            const interval = setInterval(() => {
-                const endTime = new Date(config.endTime).getTime();
-                const now = new Date().getTime();
-                const remaining = endTime - now;
-                setTimeRemaining(remaining);
-                if (remaining <= 0) {
-                    setPhase('results');
-                    clearInterval(interval);
+        const initializeApp = async () => {
+            try {
+                // await initClient();
+                const configData = await getSheetData('Config!A:C');
+                if (configData && configData.length > 0) {
+                    const countdown = parseInt(configData[0][0], 10);
+                    const sites = configData.slice(1).map(row => ({ id: row[0], name: row[1], url: row[2] }));
+                    const newConfig = { countdown, sites };
+                    setConfig(newConfig);
+
+                    const votesData = await getSheetData('Votes!A:C');
+                    const voters = votesData ? votesData.map(row => ({ email: row[0], group: row[1], votedFor: row[2] })) : [];
+                    setVoters(voters);
+
+                    const initialVotes: VoteCounts = {};
+                    sites.forEach(site => {
+                        initialVotes[site.id] = voters.filter(v => v.votedFor === site.id).length;
+                    });
+                    setVotes(initialVotes);
+
+                    const initialGroupVotes: GroupVotes = {};
+                    voters.forEach(voter => {
+                        const group = parseInt(voter.group, 10);
+                        initialGroupVotes[group] = (initialGroupVotes[group] || 0) + 1;
+                    });
+                    setGroupVotes(initialGroupVotes);
+
+                    const now = new Date().getTime();
+                    const endTimeMs = new Date(endTime).getTime();
+                    if (now >= endTimeMs) {
+                        setPhase('results');
+                    } else {
+                        setPhase('voting');
+                    }
+                } else {
+                    setPhase('error');
                 }
+            } catch (error) {
+                console.error("Error initializing app:", error);
+                setPhase('error');
+            }
+        };
+
+        initializeApp();
+    }, []);
+
+    useEffect(() => {
+        if (phase === 'voting' && config?.countdown) {
+            setTimeRemaining(config.countdown * 1000);
+            const interval = setInterval(() => {
+                setTimeRemaining(prev => {
+                    if (prev === null || prev <= 1000) {
+                        setPhase('results');
+                        clearInterval(interval);
+                        return 0;
+                    }
+                    return prev - 1000;
+                });
             }, 1000);
             return () => clearInterval(interval);
         }
-    }, [phase, config, setPhase]);
+    }, [phase, config]);
 
-    const handleSetupComplete = (newConfig: VotingConfig) => {
-        setConfig(newConfig);
-        // Initialize votes count
-        const initialVotes: VoteCounts = {};
-        newConfig.sites.forEach(site => {
-            initialVotes[site.id] = 0;
-        });
-        setVotes(initialVotes);
-        setVoters([]);
-        setGroupVotes({});
-        setPhase('voting');
-    };
-    
-    const handleReset = () => {
-        // Clear all persisted data
-        localStorage.removeItem('voting-app-phase');
-        localStorage.removeItem('voting-app-config');
-        localStorage.removeItem('voting-app-votes');
-        localStorage.removeItem('voting-app-voters');
-        localStorage.removeItem('voting-app-group-votes');
-        // Reload to reset state
-        window.location.reload();
+    const handleReset = async () => {
+        try {
+            await clearSheetData('Config!A:C');
+            await clearSheetData('Votes!A:C');
+            window.location.reload();
+        } catch (error) {
+            console.error("Failed to reset application state in Google Sheets.", error);
+            alert("Error resetting application. Please try again.");
+        }
     };
 
     const renderPhase = () => {
         switch (phase) {
-            case 'setup':
-                return <Setup onSetupComplete={handleSetupComplete} />;
             case 'voting':
                 if (!config) return <p>Configuration is missing. Please reset.</p>;
                 return <Voting config={config} votes={votes} setVotes={setVotes} voters={voters} setVoters={setVoters} groupVotes={groupVotes} setGroupVotes={setGroupVotes} timeRemaining={timeRemaining} />;
@@ -80,11 +112,9 @@ const App: React.FC = () => {
             <main>
                 {renderPhase()}
             </main>
-            {phase !== 'setup' && (
-                 <footer className="text-center mt-8">
-                    <button onClick={handleReset} className="text-gray-500 hover:text-red-500 transition-colors text-sm">Reset Application (Admin)</button>
-                </footer>
-            )}
+            <footer className="text-center mt-8">
+                <button onClick={handleReset} className="text-gray-500 hover:text-red-500 transition-colors text-sm">Reset Application</button>
+            </footer>
         </div>
     );
 };

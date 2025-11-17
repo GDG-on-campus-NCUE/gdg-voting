@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VotingConfig, VoteCounts, Voter, GroupVotes, Site } from '../types';
 import GoogleIcon from './icons/GoogleIcon';
+import { signIn, appendSheetData, getSheetData } from '../googleSheetsService';
 
 interface VotingProps {
     config: VotingConfig;
@@ -23,15 +24,22 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
 
     const hasVoted = userEmail ? voters.some(v => v.email === userEmail) : false;
 
-    // A mock login function
-    const handleLogin = () => {
-        const email = prompt("To simulate Google Login, please enter your email address:");
-        if (email) {
-            setUserEmail(email);
+    const handleLogin = async () => {
+        try {
+            await signIn();
+            const authInstance = gapi.auth2.getAuthInstance();
+            const user = authInstance.currentUser.get();
+            const profile = user.getBasicProfile();
+            if (profile) {
+                setUserEmail(profile.getEmail());
+            }
+        } catch (error) {
+            console.error("Error signing in: ", error);
+            setError("Failed to sign in with Google. Please try again.");
         }
     };
     
-    const handleVote = () => {
+    const handleVote = async () => {
         setError('');
         if (!userEmail || !userGroup || !selectedSite) {
             setError("Please log in, enter your group, and select a site to vote.");
@@ -44,22 +52,36 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
             return;
         }
 
-        if (hasVoted) {
-            setError("You have already voted.");
-            return;
-        }
+        try {
+            const votesData = await getSheetData('Votes!A:C');
+            const voters = votesData ? votesData.map(row => ({ email: row[0], group: row[1], votedFor: row[2] })) : [];
 
-        if ((groupVotes[groupNumber] || 0) >= 3) {
-            setError(`Sorry, group ${groupNumber} has already reached the maximum of 3 votes.`);
-            return;
-        }
-        
-        // All checks passed, record the vote
-        setVotes(prev => ({ ...prev, [selectedSite.id]: (prev[selectedSite.id] || 0) + 1 }));
-        setVoters(prev => [...prev, { email: userEmail, votedFor: selectedSite.id }]);
-        setGroupVotes(prev => ({ ...prev, [groupNumber]: (prev[groupNumber] || 0) + 1 }));
+            const hasVoted = voters.some(v => v.email === userEmail);
+            if (hasVoted) {
+                setError("You have already voted.");
+                return;
+            }
 
-        alert(`Thank you for your vote, ${userEmail}!`);
+            const groupVotes = voters.filter(v => v.group === userGroup).length;
+            if (groupVotes >= 3) {
+                setError(`Sorry, group ${userGroup} has already reached the maximum of 3 votes.`);
+                return;
+            }
+
+            // All checks passed, record the vote
+            const newVote = [[userEmail, userGroup, selectedSite.id]];
+            await appendSheetData('Votes!A:C', newVote);
+
+            // Update local state to reflect the new vote
+            setVotes(prev => ({ ...prev, [selectedSite.id]: (prev[selectedSite.id] || 0) + 1 }));
+            setVoters(prev => [...prev, { email: userEmail, votedFor: selectedSite.id }]);
+            setGroupVotes(prev => ({ ...prev, [groupNumber]: (prev[groupNumber] || 0) + 1 }));
+
+            alert(`Thank you for your vote, ${userEmail}!`);
+        } catch (error) {
+            setError('Failed to cast your vote. Please try again.');
+            console.error(error);
+        }
     };
 
     const formatTime = (ms: number | null) => {
@@ -132,10 +154,10 @@ const Voting: React.FC<VotingProps> = ({ config, votes, setVotes, voters, setVot
 
                         <button
                             onClick={handleVote}
-                            disabled={!userGroup || !selectedSite}
+                            disabled={!userGroup || !selectedSite || (timeRemaining !== null && timeRemaining <= 0)}
                             className="mt-6 w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 focus:ring-offset-gray-800"
                         >
-                            Cast Your Vote
+                            {timeRemaining !== null && timeRemaining <= 0 ? 'Voting Closed' : 'Cast Your Vote'}
                         </button>
                     </div>
 
