@@ -1,0 +1,5 @@
+{
+  "name": "Live Website Voting Platform",
+  "description": "An application for administrators to set up a real-time voting event for multiple websites. Users can log in to vote for their favorite site, with results revealed dramatically after the voting period ends.",
+  "requestFramePermissions": []
+}
